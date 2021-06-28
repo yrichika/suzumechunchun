@@ -1,0 +1,25 @@
+@import helper._
+@import _root_.forms.LoginRequest
+
+@** For custom field constructor **@
+@import views.html.partials.form.text
+@import views.html.helper.FieldConstructor
+
+@(loginRequestToken: String, channelName: String, isProd: Boolean, loginRequestForm: Form[LoginRequest])(implicit request: MessagesRequestHeader)
+
+@** For custom field constructor. This implicit val has to be here. **@
+@implicitField = @{ FieldConstructor(text.f)}
+
+@layouts.restricted("SuzumeChunChun | Chat Client Login Request Page", "client/request") {
+
+<main id="vue-app" class="container mx-auto">
+    <div class="lang-try-joining-to mx-2"></div>
+    <h1 class="text-4xl m-3">@channelName</h1>
+
+    <client-login-request sse-url='@routes.ClientController.sse(loginRequestToken)'
+                             request-url="@routes.ClientController.validate(loginRequestToken)"
+                             chat-url='@routes.ClientController.chat("").absoluteURL(isProd)'></client-login-request>
+
+</main>
+
+}

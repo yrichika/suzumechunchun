@@ -1,0 +1,25 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# https://www.playframework.com/documentation/latest/ScalaRouting
+# ~~~~
+
+GET     /                                     controllers.TopController.index
+POST    /submit                               controllers.TopController.validate
+GET     /create                               controllers.TopController.create
+
+GET     /host/view/:hostChannelToken               controllers.HostController.chat(hostChannelToken: String)
+GET     /host/sse/:hostChannelToken                controllers.HostController.sse(hostChannelToken: String)
+POST    /host/manage-request/:hostChannelToken     controllers.HostController.manageRequest(hostChannelToken: String)
+GET     /host/close-request/:hostChannelToken      controllers.HostController.closeRequest(hostChannelToken: String)
+GET     /host/ws/:hostChannelToken                 controllers.HostController.ws(hostChannelToken: String)
+
+GET     /client/request/view/:loginChannelToken    controllers.ClientController.request(loginChannelToken: String)
+POST    /client/request/submit/:loginChannelToken  controllers.ClientController.validate(loginChannelToken: String)
+GET     /client/request/sse/:loginChannelToken     controllers.ClientController.sse(loginChannelToken: String)
+GET     /client/chat/view/:clientChannelToken      controllers.ClientController.chat(clientChannelToken: String)
+GET     /client/chat/ws/:clientChannelToken        controllers.ClientController.ws(clientChannelToken: String)
+
+POST   /logout/:hostChannelToken                   controllers.LogoutController.index(hostChannelToken: String)
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file                              controllers.Assets.versioned(path="/public", file: Asset)
