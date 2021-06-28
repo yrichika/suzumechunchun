@@ -1,0 +1,21 @@
+@import util.Random
+
+@(channelName: String, clientChannel: String, webSocketUrl: String, codename: String, secretKey: String)(implicit request: MessagesRequestHeader)
+@layouts.chat("Client Page", "client/main") {
+<main id="vue-app" class="container mx-auto">
+    <div class="flex justify-end">
+        <button onclick='Utils.toggleVisibilityBySelector(event, ".scc-tip")'>
+            <span class="lang-tip-label rounded-full text-white bg-blue-500 p-1">
+            </span>
+        </button>
+    </div>
+    <h1 class="text-4xl m-3">@channelName</h1>
+    <hr class="mx-2 my-4">
+    <div>
+        <div>
+            <span class="lang-how-to-end"></span>
+        </div>
+        <chat web-socket-url="@webSocketUrl" codename="@codename" secret-key="@secretKey" :color-index="@Random.nextInt(34)"></chat>
+    </div>
+</main>
+}

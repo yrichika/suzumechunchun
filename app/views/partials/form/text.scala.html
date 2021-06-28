@@ -1,0 +1,12 @@
+@import helper._
+
+@** For detail: check `views.html.helper.FieldElements` class **@
+@(elements: helper.FieldElements)
+<div class="w-full text-center @if(elements.hasErrors) {error}">
+    <label for="@elements.id" class="block lang-input-label-@elements.id"></label>
+    <input type="text" id="@elements.id" name="@elements.name" class="wp-text-input h-8 w-auto sm:w-80 px-2" placeholder="Feel Safe To Chat">
+
+    @** error messages are not necessary **@
+<!--    <span class="errors">@elements.errors.mkString(", ")</span>-->
+<!--    <span class="help">@elements.infos.mkString(", ")</span>-->
+</div>

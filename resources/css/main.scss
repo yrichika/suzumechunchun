@@ -1,0 +1,49 @@
+/* purgecss start ignore */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* for vue router */
+.is-active a {
+  @apply bg-blue-300 text-white rounded;
+}
+
+.wp-text-input {
+  @apply shadow border border-gray-400 rounded
+}
+
+.btn {
+  @apply font-bold py-2 px-4 rounded;
+}
+
+
+.btn-blue {
+  @apply bg-blue-500 text-white;
+}
+
+.btn-blue:hover {
+  @apply bg-blue-700;
+}
+
+.btn-red {
+  @apply bg-red-500 text-white;
+}
+
+.btn-red:hover {
+  @apply bg-red-700;
+}
+
+body {
+  @apply bg-gray-50;
+}
+
+.scc-bg-brown {
+  background-color: #F2CEB8;
+}
+
+
+/* purgecss end ignore */
+
+.experimenting {
+  display:none;
+}

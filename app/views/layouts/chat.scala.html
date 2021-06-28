@@ -1,0 +1,41 @@
+@(title: String, langPath: String)(content: Html)(implicit messagesProvider: MessagesProvider)
+<!DOCTYPE html>
+<html lang="@messagesProvider.messages.lang.code">
+<head>
+    <meta charset="utf-8">
+
+    <meta name="robots" content="none,noarchive">
+
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="format-detection" content="telephone=no,address=no,email=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1 viewport-fit=cover">
+
+
+    <link rel="shortcut icon" type="image/png" href='@routes.Assets.versioned("images/icon.svg")'>
+    <script src='@routes.Assets.versioned(s"lang/$langPath/en.js")' defer></script>
+    <script src='@routes.Assets.versioned(s"lang/$langPath/ja.js")' defer></script>
+    <script src='@routes.Assets.versioned("javascripts/app.js")' defer></script>
+    <link rel="shortcut icon" href="/images/icon.svg">
+    <link rel="apple-touch-icon" href="/images/icon.svg">
+    <link rel="apple-mobile-web-app-title" content="SuzumeChunChun">
+    <title>@title</title>
+</head>
+<body>
+
+    <div class="mx-auto mb-3 bg-gray-100">
+        <header class="border-b-2 w-fill mx-2">
+            <div class="flex justify-between">
+                <div class="flex justify-start items-center">
+                    <img class="h-10 w-auto" src='@routes.Assets.versioned("images/icon.svg")' alt="logo">
+                </div>
+                <div class="flex justify-end">
+                    <button class="text-blue-500 underline m-3" onclick='L.setLanguage("en")'>English</button>
+                    <button class="text-blue-500 underline m-3" onclick='L.setLanguage("ja")'>日本語</button>
+                </div>
+            </div>
+        </header>
+    </div>
+    @content
+
+</body>
+</html>

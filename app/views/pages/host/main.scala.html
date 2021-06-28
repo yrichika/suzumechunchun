@@ -1,0 +1,58 @@
+@import helper._
+@import play.api.libs.json.Json
+@import util.Random
+
+@(channelName: String, hostChannel: String, webSocketUrl: String, clientRequestPageUrl: String, secretKey: String)(implicit request: MessagesRequestHeader)
+@layouts.chat("Host Page", "host/main") {
+<div class="container mx-auto">
+    <div class="flex justify-end">
+        <button onclick='Utils.toggleVisibilityBySelector(event, ".scc-tip")'>
+            <span class="lang-tip-label rounded-full text-white bg-blue-500 p-1">
+            </span>
+        </button>
+    </div>
+    <div class="flex justify-start">
+        @form(action = routes.LogoutController.index(hostChannel)) {
+            @CSRF.formField
+            <button
+                    class="lang-logout-button rounded bg-pink-500 hover:bg-pink-700 text-white px-2"
+                    type="submit"
+                    onclick="sessionStorage.clear()"
+            ></button>
+            <span class="lang-dont-forget scc-tip text-xs opacity-50"></span>
+        }
+    </div>
+</div>
+<main id="vue-app" class="container mx-auto">
+
+    <h1 class="text-4xl m-3">@channelName</h1>
+
+    <div>
+        <div class="">
+            <span class="lang-client-request-url block mx-2"></span>
+            <div class="flex mt-4 mx-2">
+                <button class="py-1 px-2 rounded-l text-sm btn-blue" onclick='Utils.copyToClipboard("client-request-url")'>copy</button>
+                <input type="text"
+                       id="client-request-url"
+                       class="w-full text-gray-600 bg-gray-200 rounded-r px-3"
+                       value="@clientRequestPageUrl"
+                       readonly>
+            </div>
+
+
+        </div>
+        <hr class="mt-5">
+        <div class="mt-5 mb-5">
+            <chat web-socket-url="@webSocketUrl" secret-key="@secretKey" codename="Host" :color-index="@Random.nextInt(34)" is-host></chat>
+        </div>
+        <hr>
+        <div class="mt-5">
+            <manage-client-request
+                    sse-url="@routes.HostController.sse(hostChannel)"
+                    post-url="@routes.HostController.manageRequest(hostChannel)"
+                    close-request-url="@routes.HostController.closeRequest(hostChannel)"
+            ></manage-client-request>
+        </div>
+    </div>
+</main>
+}

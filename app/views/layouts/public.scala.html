@@ -1,0 +1,67 @@
+@(title: String, langPath: String)(content: Html)(implicit messagesProvider: MessagesProvider, request: MessagesRequestHeader)
+<!DOCTYPE html>
+<html lang="@messagesProvider.messages.lang.code">
+    <head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/website#">
+        <meta charset="utf-8">
+
+        <meta http-equiv="x-ua-compatible" content="ie=edge">
+        <meta name="format-detection" content="telephone=no,address=no,email=no">
+        <meta name="viewport" content="width=device-width, initial-scale=1 viewport-fit=cover">
+
+        <link rel="shortcut icon" type="image/png" href='@routes.Assets.versioned("images/icon.svg")'>
+        <script src='@routes.Assets.versioned(s"lang/$langPath/en.js")' defer></script>
+        <script src='@routes.Assets.versioned(s"lang/$langPath/ja.js")' defer></script>
+        <script src='@routes.Assets.versioned("javascripts/app.js")' defer></script>
+        <link rel="shortcut icon" href='@routes.Assets.versioned("images/icon.svg")'>
+        <link rel="apple-touch-icon" href='@routes.Assets.versioned("images/icon.svg")'>
+        <link rel="apple-mobile-web-app-title" content="SuzumeChunChun">
+
+        @** NOTICE: just passing `true` to `absoluteURL` here. Just for convenience and not to complicate the code. **@
+        <meta property="og:url" content="@routes.TopController.index().absoluteURL(true)">
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="SuzumeChunChun">
+        <meta property="og:title" content="@title">
+        <meta property="og:description" content="Totally Anonymous and Private Web Chat App">
+        @** NOTICE: same here as with above `absoluteURL` **@
+        <meta property="og:image" content='@routes.Assets.versioned("images/icon.svg").absoluteURL(true)'>
+
+        <meta name="description" content="Totally Anonymous and Private Web Chat App">
+
+        <title>@title</title>
+
+    </head>
+<body>
+    <div class="mx-auto mb-3 bg-gray-100">
+        <header class="border-b-2 w-full mx-2">
+            <!--  TODO: align vertically for mobile layout  -->
+            <div class="flex justify-between">
+                <div class="flex justify-start items-center">
+                    <span class="mx-1">source &#64;</span>
+                    <a class="text-blue-500 underline" href="https://github.com/yrichika/suzumechunchun" target="_blank" rel="noopener noreferrer">
+                        GitHub
+                    </a>
+                </div>
+                <div class="flex justify-end mr-2">
+                    <button class="text-blue-500 underline m-3" onclick='L.setLanguage("en")'>English</button>
+                    <button class="text-blue-500 underline m-3" onclick='L.setLanguage("ja")'>日本語</button>
+                </div>
+            </div>
+        </header>
+    </div>
+
+    @content
+
+    <div class="border-t-2 mt-2 bg-gray-100">
+        <div class="text-center">
+            <span class="mx-1">support &#64;</span>
+            <a class="text-blue-500 underline" href="https://twitter.com/sccwebchat" target="_blank" rel="noopener noreferrer">
+                Twitter
+            </a>
+        </div>
+        <footer class="mt-2">
+            <p class="text-center">&copy; yrichika</p>
+        </footer>
+    </div>
+
+</body>
+</html>
