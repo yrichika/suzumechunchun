@@ -1,7 +1,7 @@
 const ja = new Map([
     ['input-label-codename', 'コードネーム'],
     ['input-label-passphrase', '合言葉'],
-    ['try-joining-to', '参加しようとしているチャットルームは: '],
+    ['try-joining-to', '参加しようとしているチャットチャンネルは: '],
     ['send-request-button', 'リクエスト送信'],
     ['chat-closed', 'チャットへの参加は終了しました'],
     ['send-request-button', '送信'],
