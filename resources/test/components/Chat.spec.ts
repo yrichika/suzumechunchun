@@ -9,7 +9,7 @@ import storageMock from '@test/testhelpers/testdoubles/mocks/storageMock'
 // https://github.com/romgain/jest-websocket-mock
 import WS from "jest-websocket-mock";
 import CryptoJS from 'crypto-js'
-
+import _ from 'lodash'
 
 describe('Chat' , () => {
   let wrapper: VueFlexTypeWrapper
@@ -30,6 +30,7 @@ describe('Chat' , () => {
   Object.defineProperty(window, 'sessionStorage', {
     value: sessionStorageMock
   });
+  const dateNowBackUp = Date.now
 
   beforeAll(() => {
     jest.spyOn(window, 'alert').mockImplementation(() => {})
@@ -49,7 +50,9 @@ describe('Chat' , () => {
     sessionStorageMock.clear()
     webSocketServer.close()
     console.error = consoleErrorBackUp
+    Date.now = dateNowBackUp
   })
+
 
   test('it should set properties and data properly', () => {
     expect(wrapper.props().codename).toBe(props.codename)
@@ -60,24 +63,20 @@ describe('Chat' , () => {
     expect(colors.includes(wrapper.vm.color)).toBe(true)
     const nameColor = RegExpHelper.eitherRegex('text-white', 'text-black')
     expect(wrapper.vm.nameTextColor).toMatch(nameColor)
-
   })
+
 
   test('it should abort if no secret key provided', () => {
     // todo: not implemented yet!
   })
 
+
   test('setInterval should set eraseMessage method at create hook', () => {
     jest.useFakeTimers()
-
     // WARNING! must instantiate after jest.useFakeTimers()
-    const anotherWrapper = mount(Chat, {propsData: props})
+    const anotherWrapper: VueFlexTypeWrapper = mount(Chat, {propsData: props})
 
-    // this does not work. Don't know why.
-    // expect(setInterval).toHaveBeenCalledWith(wrapper.vm.eraseMessage, wrapper.props().eraseMessageIntervalInMilSec)
-    // FIXME: this is just a workaround
-    expect((setInterval as any).mock.calls[0][0].name).toMatch('eraseMessage')
-
+    expect(setInterval).toHaveBeenCalledWith(anotherWrapper.vm.eraseMessage, anotherWrapper.props().eraseMessageExecuteIntervalInMilSec)
   })
 
 
@@ -99,7 +98,6 @@ describe('Chat' , () => {
   })
 
 
-
   test('websocket should show alert if on error', async () => {
     console.error = jest.fn()
     await webSocketServer.connected
@@ -115,10 +113,8 @@ describe('Chat' , () => {
     const chatMessage = createSingleFakeChatMessage()
     const encMessage = CryptoJS.AES.encrypt(JSON.stringify(chatMessage), props.secretKey)
     webSocketServer.send(encMessage)
-    
-    expect(wrapper.vm.receivedMessages[0].name).toBe(chatMessage.name)
-    expect(wrapper.vm.receivedMessages[0].message).toBe(chatMessage.message)
-    expect(wrapper.vm.receivedMessages[0].color).toBe(chatMessage.color)
+
+    expect(wrapper.vm.receivedMessages[0]).toEqual(chatMessage)
   })
 
 
@@ -128,23 +124,15 @@ describe('Chat' , () => {
     const encMessage = CryptoJS.AES.encrypt(JSON.stringify(chatMessage), props.secretKey)
     webSocketServer.send(encMessage)
 
-    const savedMessagesString = window.sessionStorage.getItem(wrapper.props().sessionName)!
-    const savedMessagesArray: Array<string> = JSON.parse(savedMessagesString)
-    const bytes = CryptoJS.AES.decrypt(savedMessagesArray[0], props.secretKey)
-    const decryptedString = bytes.toString(CryptoJS.enc.Utf8)
-    const savedMessage = JSON.parse(decryptedString)
-    expect(savedMessage.name).toBe(chatMessage.name)
-    expect(savedMessage.message).toBe(chatMessage.message)
-    expect(savedMessage.color).toBe(chatMessage.color)
-
-
+    const savedMessage = getParsedAndDecryptedSessionData(wrapper)[0]
+    expect(savedMessage).toEqual(chatMessage)
   })
 
 
   test('websocket should not add received message to sessionStorage if isHost false', async () => {
     // creating completely different websocket connection from beforeEach
     webSocketServer.close()
-    const clonedProps = JSON.parse(JSON.stringify(props))
+    const clonedProps = _.cloneDeep(props)
     const clientProps = Object.assign(clonedProps, {
       webSocketUrl: 'ws://client-websocket',
       sessionName: 'client-session',
@@ -163,37 +151,90 @@ describe('Chat' , () => {
   })
 
 
-  test('addToMessagesLimitTo should add new message to the parameter Array', () => {
-    const messages: Array<string> = []
-    const messageString = Random.string(5)
-    wrapper.vm.addToMessagesLimitTo(messages, messageString, 10)
+  test('addToMessagesLimitTo should add new message to receivedMessages', () => {
+    const messageString = createSingleFakeChatMessage()
+    wrapper.vm.receivedMessages = []
+    wrapper.vm.addToMessagesLimitTo(messageString, 10, Date.now())
 
-    expect(messages[0]).toBe(messageString)
+    expect(wrapper.vm.receivedMessages[0]).toEqual(messageString)
   })
 
-  // REFACTOR:
-  test('addToMessagesLimitTo should delete head data and append new data if array is over limit length', () => {
-    const originalMessages: Array<string> = [
-      Random.string(5),
-      Random.string(5),
-      Random.string(5)
-    ]
-    const newMessage = Random.string(5)
-    const clonedMessages = JSON.parse(JSON.stringify(originalMessages))
 
-    wrapper.vm.addToMessagesLimitTo(clonedMessages, newMessage, 3)
+  test('addToMessagesLimitTo should delete head data and append new data if array is over limit length and update first element timestamp', () => {
+    const originalMessages = createFakeChatMessages(3)
 
-    expect(clonedMessages[0]).toBe(originalMessages[1])
-    expect(clonedMessages[1]).toBe(originalMessages[2])
-    expect(clonedMessages[2]).toBe(newMessage)
+    const newMessage = createSingleFakeChatMessage()
+    wrapper.vm.receivedMessages = _.cloneDeep(originalMessages)
+    const tickMilSec = 1000
+    distortCurrentTimeTo(tickMilSec)
+    wrapper.vm.addToMessagesLimitTo(newMessage, 3, Date.now())
+    
+    expect(wrapper.vm.receivedMessages.length).toBe(3)
+    expect(wrapper.vm.receivedMessages[0].name).toBe(originalMessages[1].name)
+    expect(wrapper.vm.receivedMessages[0].message).toBe(originalMessages[1].message)
+    expect(wrapper.vm.receivedMessages[0].color).toBe(originalMessages[1].color)
+    expect(wrapper.vm.receivedMessages[0].timestamp).toBeGreaterThanOrEqual(originalMessages[1].timestamp + tickMilSec)
+
+    expect(wrapper.vm.receivedMessages[1]).toEqual(originalMessages[2])
+    expect(wrapper.vm.receivedMessages[2]).toEqual(newMessage)
+  })
+
+
+  test('addToSessionLimitTo should add new message to storedEncryptedMessages and sessionStorage', () => {
+    setChatMessages(wrapper)
+    const newMessage: ChatMessage = createSingleFakeChatMessage()
+    const jsoned = JSON.stringify(newMessage)
+    const encMessage = CryptoJS.AES.encrypt(jsoned, wrapper.vm.secretKey).toString();
+
+    wrapper.vm.addToSessionLimitTo(encMessage, 10, Date.now())
+
+    const storedMessage = _.last(wrapper.vm.storedEncryptedMessages)
+    expect(wrapper.vm.decrypt(storedMessage)).toEqual(newMessage)
+  })
+
+
+  test('addToSessionLimitTo should delete head data and append new data if array is over limit length and update first element timestamp', () => {
+    const maxNum = 3
+    const created = setChatMessages(wrapper, maxNum)
+    const newMessage: ChatMessage = createSingleFakeChatMessage()
+    const jsoned = JSON.stringify(newMessage)
+    const encMessage = CryptoJS.AES.encrypt(jsoned, wrapper.vm.secretKey).toString();
+
+    const tickMilSec = 1000
+    distortCurrentTimeTo(tickMilSec)
+    wrapper.vm.addToSessionLimitTo(encMessage, maxNum, Date.now())
+
+    expect(wrapper.vm.storedEncryptedMessages.length).toBe(maxNum)
+    const decryptedMessages = wrapper.vm.storedEncryptedMessages.map((message: string) => {
+      return wrapper.vm.decrypt(message)
+    })
+    expect(decryptedMessages[0].name).toBe(created[1].name)
+    expect(decryptedMessages[0].message).toBe(created[1].message)
+    expect(decryptedMessages[0].color).toBe(created[1].color)
+    expect(decryptedMessages[0].timestamp).toBeGreaterThanOrEqual(created[1].timestamp + tickMilSec)
+
+    expect(decryptedMessages[1]).toEqual(created[2])
+    expect(decryptedMessages[2]).toEqual(newMessage)
+  })
+
+
+  test('setHeadSessionStoredMessageTimestamp should set timestamp of first item of storedEncryptedMessage and sessionStorage', () => {
+    setChatMessages(wrapper)
+    const timestamp = Random.int(1, 1000)
+    wrapper.vm.setHeadSessionStoredMessageTimestamp(timestamp)
+
+    const decryptedMessage: ChatMessage = wrapper.vm.decrypt(wrapper.vm.storedEncryptedMessages[0])
+    expect(decryptedMessage.timestamp).toBe(timestamp)
+    const sessionStoredMessages = getParsedAndDecryptedSessionData(wrapper)
+    expect(sessionStoredMessages[0].timestamp).toBe(timestamp)
   })
 
 
   test('encrypt should encrypt sending message and decrypt should decrypt the encrypted string to json', () => {
     const sendingMessage = Random.string(5)
     wrapper.vm.sendingMessage = sendingMessage
-
-    const encryptedMessage = wrapper.vm.encrypt()
+    const timestamp = Date.now()
+    const encryptedMessage = wrapper.vm.encrypt(timestamp)
     expect(encryptedMessage).not.toMatch(sendingMessage) // not necessary, but just checking
 
     const decryptedMessage: ChatMessage = wrapper.vm.decrypt(encryptedMessage)
@@ -201,13 +242,14 @@ describe('Chat' , () => {
     expect(decryptedMessage.name).toBe(wrapper.props().codename)
     expect(decryptedMessage.message).toBe(sendingMessage)
     expect(decryptedMessage.color).toBe(wrapper.vm.color)
+    expect(decryptedMessage.timestamp).toBe(timestamp)
     
   })
 
 
   test('save should save given string to sessionStorage', () => {
     const encryptedMessage = Random.string(5)
-    wrapper.vm.save(encryptedMessage)
+    wrapper.vm.save(encryptedMessage, Date.now())
 
     const savedMessagesString = window.sessionStorage.getItem(wrapper.props().sessionName)!
     const savedMessagesArray: Array<string> = JSON.parse(savedMessagesString)
@@ -217,7 +259,7 @@ describe('Chat' , () => {
 
   test('getSavedMessage should return all encrypted stored messages as array', () => {
     const encryptedMessage = Random.string(5)
-    wrapper.vm.save(encryptedMessage)
+    wrapper.vm.save(encryptedMessage, Date.now())
 
     const result = wrapper.vm.getSavedMessages()
     expect(result[0]).toBe(encryptedMessage)
@@ -229,51 +271,155 @@ describe('Chat' , () => {
     expect(result).toEqual([])
   })
 
-  test('eraseMessage should delete one oldest element in receivedMessages', () => {
-    const numMessages = Random.int(1, 5)
-    const chatMessages = createFakeChatMessages(numMessages)
-    const clonedMessages = JSON.parse(JSON.stringify(chatMessages))
-    wrapper.vm.receivedMessages = chatMessages
+
+  test('eraseMessage should delete one oldest element in receivedMessages if eraseMessageOlderThanMilSec mill seconds passed', () => {
+    const created = setChatMessages(wrapper)
+
+    distortCurrentTimeTo(wrapper.vm.eraseMessageOlderThanMilSec)
+    wrapper.vm.eraseMessage()
+
+    expect(wrapper.vm.receivedMessages.length).toBe(created.length - 1)
+    for (let i = 0; i < (created.length - 1); i++) {
+      if (i !== 0) {
+        expect(wrapper.vm.receivedMessages[i]).toEqual(created[i + 1])
+      } else {
+        // Do not compare timestamp of the first element.
+        expect(wrapper.vm.receivedMessages[i].name).toBe(created[i + 1].name)
+        expect(wrapper.vm.receivedMessages[i].message).toBe(created[i + 1].message)
+        expect(wrapper.vm.receivedMessages[i].color).toBe(created[i + 1].color)
+      }
+    }
+  })
+
+
+  test('eraseMessage should not delete any elements in receivedMessages if eraseMessageOlderThanMilSec mill seconds have not passed', () => {
+    const created = setChatMessages(wrapper)
+    
+    wrapper.vm.eraseMessage()
+
+    expect(wrapper.vm.receivedMessages.length).toBe(created.length)
+    for (let i = 0; i < created.length; i++) {
+      expect(wrapper.vm.receivedMessages[i]).toEqual(created[i])
+    }
+  })
+
+
+  test('eraseMessage should delete one oldest element in sessionStorage if eraseMessageOlderThanMilSec mill seconds have passed', () => {
+    const created = setChatMessages(wrapper)
+
+    distortCurrentTimeTo(wrapper.vm.eraseMessageOlderThanMilSec)
 
     wrapper.vm.eraseMessage()
 
-    expect(wrapper.vm.receivedMessages.length).toBe(numMessages - 1)
-    for (let i = 0; i < (numMessages - 1); i++) {
-      expect(chatMessages[i].name).toBe(clonedMessages[i + 1].name)
-      expect(chatMessages[i].message).toBe(clonedMessages[i + 1].message)
-      expect(chatMessages[i].color).toBe(clonedMessages[i + 1].color)
+    const sessionStoredMessages = getParsedAndDecryptedSessionData(wrapper)
+
+    expect(sessionStoredMessages.length).toBe(created.length - 1)
+    for(let i = 0; i < (created.length - 1); i++) {
+      expect(sessionStoredMessages[i].name).toBe(created[i + 1].name)
+      expect(sessionStoredMessages[i].message).toBe(created[i + 1].message)
+      expect(sessionStoredMessages[i].color).toBe(created[i + 1].color)
+      // Do not assert timestamp property. Timestamp property of the first element in sessionStorage is changed.
+    }
+  })
+
+
+  test('eraseMessage should not delete any elements in sessionStorage if eraseMessageOlderThanMilSec mill seconds have not passed', () => {
+    const created = setChatMessages(wrapper)
+
+    wrapper.vm.eraseMessage()
+
+    const sessionStoredMessages = getParsedAndDecryptedSessionData(wrapper)
+
+    expect(sessionStoredMessages.length).toBe(created.length)
+    for(let i = 0; i < created.length; i++) {
+      expect(sessionStoredMessages[i].name).toBe(created[i].name)
+      expect(sessionStoredMessages[i].message).toBe(created[i].message)
+      expect(sessionStoredMessages[i].color).toBe(created[i].color)
+      // Do not assert timestamp property. Timestamp property of the first element in sessionStorage is changed.
     }
   })
 
 
 
-  test('eraseMessage should delete one oldest element in sessionStorage', () => {
-    const numMessages = Random.int(1, 5)
-    const chatMessages = createFakeChatMessages(numMessages)
-    const clonedMessages = JSON.parse(JSON.stringify(chatMessages))
-    wrapper.vm.receivedMessages = JSON.parse(JSON.stringify(chatMessages))
-    wrapper.vm.storedEncryptedMessages = JSON.parse(JSON.stringify(chatMessages))
+  test('shiftMessage should shift receivedMessages and storedEncryptedMessages', () => {
+    const createdMessages = setChatMessages(wrapper)
 
-    wrapper.vm.eraseMessage()
+    wrapper.vm.shiftMessage()
 
-    const sessionDataString = window.sessionStorage.getItem(wrapper.props().sessionName)!
-    const sessionMessageArray = JSON.parse(sessionDataString)
+    expect(wrapper.vm.receivedMessages.length).toBe(createdMessages.length - 1)
+    expect(wrapper.vm.storedEncryptedMessages.length).toBe(createdMessages.length - 1)
+    for (let i = 0; i < createdMessages.length - 1; i++) {
+      if (i !== 0) {
+        expect(wrapper.vm.receivedMessages[i]).toEqual(createdMessages[i + 1])
+        const decrypted = wrapper.vm.decrypt(wrapper.vm.storedEncryptedMessages[i])
+        expect(decrypted).toEqual(createdMessages[i + 1])
+      } else {
+        expect(wrapper.vm.receivedMessages[i].name).toBe(createdMessages[i + 1].name)
+        expect(wrapper.vm.receivedMessages[i].message).toBe(createdMessages[i + 1].message)
+        expect(wrapper.vm.receivedMessages[i].color).toBe(createdMessages[i + 1].color)
 
-    expect(sessionMessageArray.length).toBe(clonedMessages.length - 1)
-    for(let i = 0; i < (numMessages - 1); i++) {
-      expect(sessionMessageArray[i].name).toBe(clonedMessages[i + 1].name)
-      expect(sessionMessageArray[i].message).toBe(clonedMessages[i + 1].message)
-      expect(sessionMessageArray[i].color).toBe(clonedMessages[i + 1].color)
+        const decrypted = wrapper.vm.decrypt(wrapper.vm.storedEncryptedMessages[i])
+        expect(decrypted.name).toBe(createdMessages[i + 1].name)
+        expect(decrypted.message).toBe(createdMessages[i + 1].message)
+        expect(decrypted.color).toBe(createdMessages[i + 1].color)
+      }
     }
-
   })
+
+
+  test('shiftMessage should return deleted message', () => {
+    const createdMessages = setChatMessages(wrapper)
+    const result: ChatMessage = wrapper.vm.shiftMessage()
+    expect(result).toEqual(createdMessages[0])
+  })
+
+
+  test('setHeadMessageTimestampToCurrent should update timestamp of the first chat message in messages to current time', () => {
+    const createdMessages = setChatMessages(wrapper)
+    const tickMilSec = 1000
+    distortCurrentTimeTo(tickMilSec)
+
+    wrapper.vm.setHeadMessageTimestampToCurrent()
+
+    expect(wrapper.vm.receivedMessages[0].timestamp).toBeGreaterThanOrEqual(createdMessages[0].timestamp + tickMilSec)
+  })
+
+
+  test('setHeadMessageTimestampToCurrent should update timestamp of the first chat message in encrypted session messages to current time', () => {
+
+    const createdMessages = setChatMessages(wrapper)
+    const tickMilSec = 1000
+    distortCurrentTimeTo(tickMilSec)
+
+    wrapper.vm.setHeadMessageTimestampToCurrent()
+
+    const result = getParsedAndDecryptedSessionData(wrapper)[0]
+
+    expect(result.timestamp).toBeGreaterThanOrEqual(createdMessages[0].timestamp + tickMilSec)
+  })
+
+
+  test('setHeadMessageTimestampToCurrent should do nothing if receivedMessages is empty', () => {
+    wrapper.vm.receivedMessages = []
+    wrapper.vm.storedEncryptedMessages = []
+    window.sessionStorage.setItem(wrapper.props().sessionName, JSON.stringify([]))
+    const tickMilSec = 1000
+    distortCurrentTimeTo(tickMilSec)
+
+    wrapper.vm.setHeadMessageTimestampToCurrent()
+    
+    expect(wrapper.vm.receivedMessages).toEqual([])
+    expect(wrapper.vm.storedEncryptedMessages).toEqual([])
+    expect(window.sessionStorage.getItem(wrapper.props().sessionName)).toBe('[]')
+  })
+
 
   test('showMessage should add message to receivedMessages', () => {
     const numMessages = Random.int(1, 5)
     const decryptedMessages = createFakeChatMessages(numMessages)
     
     decryptedMessages.forEach(message => {
-      wrapper.vm.showMessage(message)
+      wrapper.vm.showMessage(message, Date.now())
     })
 
     wrapper.vm.receivedMessages.forEach((message: ChatMessage, key: number) => {
@@ -283,7 +429,6 @@ describe('Chat' , () => {
     })
     
   })
-
 
 
   test('sendMessage should call websocket send method and empty sendingMessage', async () => {
@@ -354,6 +499,42 @@ describe('Chat' , () => {
     expect(result).toBe('text-black')
   })
 
+  // ----------------------------------------
+
+  function setChatMessages(vueWrapper: VueFlexTypeWrapper, howMany: number = 0): ChatMessage[] {
+    const numMessages = (howMany != 0) ? howMany : Random.int(1, 5)
+    const chatMessages = createFakeChatMessages(numMessages)
+    vueWrapper.vm.receivedMessages = chatMessages
+    // encrypting original messages to store in session storage.   
+    const encryptedMessages = encryptChatMessages(chatMessages)
+    vueWrapper.vm.storedEncryptedMessages = _.cloneDeep(encryptedMessages)
+    window.sessionStorage.setItem(wrapper.props().sessionName, JSON.stringify(wrapper.vm.storedEncryptedMessages))
+
+    return _.cloneDeep(chatMessages)
+  }
+  
+
+  function encryptChatMessages(chatMessages: ChatMessage[]): string[] {
+    return chatMessages.map(message => {
+      const jsonedMessage = JSON.stringify(message)
+      return CryptoJS.AES.encrypt(jsonedMessage, wrapper.props().secretKey).toString();
+    })
+  }
+
+
+  function getParsedAndDecryptedSessionData(vueWrapper: VueFlexTypeWrapper): ChatMessage[] {
+    const savedMessagesString = window.sessionStorage.getItem(vueWrapper.props().sessionName)!
+    const savedMessagesArray: Array<string> = JSON.parse(savedMessagesString)
+    return savedMessagesArray.map(encMessages => {
+      return vueWrapper.vm.decrypt(encMessages)
+    })
+  }
+
+
+  function distortCurrentTimeTo(millSec: number) {
+    Date.now = jest.fn(() => dateNowBackUp() + millSec)
+  }
+
 
   function createFakeChatMessages(howMany: number): Array<ChatMessage> {
     const chatMessages = Array<ChatMessage>()
@@ -364,11 +545,13 @@ describe('Chat' , () => {
     return chatMessages
   }
 
+
   function createSingleFakeChatMessage(): ChatMessage {
     return {
       name: Random.string(5),
       message: Random.string(5),
-      color: Random.string(3)
+      color: Random.string(3),
+      timestamp: Date.now()
     }
   }
 })

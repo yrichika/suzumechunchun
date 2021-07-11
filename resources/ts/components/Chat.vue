@@ -115,9 +115,13 @@ export default Vue.extend({
             type: Number,
             default: 30000,
         },
-        eraseMessageIntervalInMilSec: {
+        eraseMessageOlderThanMilSec: {
             type: Number,
             default: 20000
+        },
+        eraseMessageExecuteIntervalInMilSec: {
+            type: Number,
+            default: 3000
         },
         numMaxMessages: {
             type: Number,
@@ -135,7 +139,7 @@ export default Vue.extend({
         this.alertClientBeforeLeave();
         this.color = colors[this.colorIndex]
         this.nameTextColor = this.textColor(this.color)
-        window.setInterval(this.eraseMessage, this.eraseMessageIntervalInMilSec)
+        window.setInterval(this.eraseMessage, this.eraseMessageExecuteIntervalInMilSec)
 
         this.connection.onopen = () => {
             // TYPESCRIPT: must prepend `window.` to `setInterval()`. Otherwise, it's gonna use NodeJS's setInterval.
@@ -143,11 +147,12 @@ export default Vue.extend({
         };
 
         this.connection.onmessage = event => {
+            const now = Date.now()
             if (this.isHost) {
-                this.save(event.data);
+                this.save(event.data, now);
             }
             const decryptedMessage = this.decrypt(event.data);
-            this.showMessage(decryptedMessage);
+            this.showMessage(decryptedMessage, now);
         };
 
         this.connection.onclose = event => {
@@ -165,7 +170,7 @@ export default Vue.extend({
             this.storedEncryptedMessages = this.getSavedMessages();
             for (let i = 0; i < this.storedEncryptedMessages.length; i++) {
                 const decryptedMessage = this.decrypt(this.storedEncryptedMessages[i]);
-                this.showMessage(decryptedMessage);
+                this.showMessage(decryptedMessage, Date.now());
             }
         }
     },
@@ -173,12 +178,39 @@ export default Vue.extend({
 
     methods: {
         eraseMessage(): void {
-            if (this.receivedMessages.length > 0) {
-                this.receivedMessages.shift()
-                this.storedEncryptedMessages.shift()
-                sessionStorage.setItem(this.sessionName, JSON.stringify(this.storedEncryptedMessages));
+            if (this.receivedMessages.length <= 0) {
+                return;
+            }
+            const eraseIfGreaterTimestamp = this.receivedMessages[0].timestamp + this.eraseMessageOlderThanMilSec
+            if (Date.now() >= eraseIfGreaterTimestamp) {
+                this.shiftMessage()
             }
         },
+
+        shiftMessage(): ChatMessage | undefined {
+            const message = this.receivedMessages.shift()
+            if (this.isHost) {
+                this.storedEncryptedMessages.shift()
+
+            }
+            this.setHeadMessageTimestampToCurrent()
+
+            return message
+        },
+
+        setHeadMessageTimestampToCurrent(): void {
+            if (this.receivedMessages.length <= 0) {
+                sessionStorage.setItem(this.sessionName, JSON.stringify([]))
+                return;
+            }
+            const now = Date.now()
+            this.receivedMessages[0].timestamp = now
+            if (this.isHost) {
+                this.setHeadSessionStoredMessageTimestamp(now)
+            }
+        },
+
+
 
         getSavedMessages(): Array<string> {
             const storedDataString = sessionStorage.getItem(this.sessionName)
@@ -198,23 +230,40 @@ export default Vue.extend({
             return 'text-black'
         },
 
-        save(data: string): void {
-            this.addToMessagesLimitTo(this.storedEncryptedMessages, data, this.numMaxMessages)
+        save(data: string, now: number): void {
+            this.addToSessionLimitTo(data, this.numMaxMessages, now)
             sessionStorage.setItem(this.sessionName, JSON.stringify(this.storedEncryptedMessages));
         },
 
-        showMessage(decryptedMessage: ChatMessage): void {
-            this.addToMessagesLimitTo(this.receivedMessages, decryptedMessage, this.numMaxMessages)
+        showMessage(decryptedMessage: ChatMessage, now: number): void {
+            this.addToMessagesLimitTo(decryptedMessage, this.numMaxMessages, now)
         },
 
-        /**
-         * this method is to change `messages` parameter value.
-         */
-        addToMessagesLimitTo(messages: Array<any>, data: any, howMany: number): void {
-            if (messages.length >= howMany) {
-                messages.shift();
+        // REFACTOR: this logic is very close to addToSessionLimitTo
+        addToMessagesLimitTo(data: any, howMany: number, nowTimestamp: number): void {
+            if (this.receivedMessages.length >= howMany) {
+                this.receivedMessages.shift();
+                this.receivedMessages[0].timestamp = nowTimestamp
             }
-            messages.push(data);
+            this.receivedMessages.push(data);
+        },
+
+        // REFACTOR: this logic is very close to addToMessagesLimitTo.
+        addToSessionLimitTo(data: any, howMany: number, nowTimestamp: number): void {
+            if (this.storedEncryptedMessages.length >= howMany) {
+                this.storedEncryptedMessages.shift();
+                this.setHeadSessionStoredMessageTimestamp(nowTimestamp)
+            }
+            this.storedEncryptedMessages.push(data);
+        },
+ 
+        setHeadSessionStoredMessageTimestamp(timestamp: number): void {
+            const decryptedMessage = this.decrypt(this.storedEncryptedMessages[0])
+            decryptedMessage.timestamp = timestamp
+            const jsonedMessage = JSON.stringify(decryptedMessage)
+            const encrypted = CryptoJS.AES.encrypt(jsonedMessage, this.secretKey).toString();
+            this.storedEncryptedMessages[0] = encrypted
+            sessionStorage.setItem(this.sessionName, JSON.stringify(this.storedEncryptedMessages));
         },
 
         decrypt(encMessage: string): ChatMessage {
@@ -224,13 +273,14 @@ export default Vue.extend({
         },
 
 
-        encrypt(): string {
+        encrypt(timestamp: number = Date.now()): string {
             const name = this.codename
             const sanitizedMessage = Utils.htmlspecialcharsJs(this.sendingMessage)
             const message: ChatMessage = {
                 name: name,
                 message: sanitizedMessage,
-                color: this.color
+                color: this.color,
+                timestamp: timestamp
             }
             const jsonedMessage = JSON.stringify(message)
             return CryptoJS.AES.encrypt(jsonedMessage, this.secretKey).toString();

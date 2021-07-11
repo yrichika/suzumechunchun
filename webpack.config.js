@@ -76,11 +76,11 @@ module.exports = {
         new WebpackNotifier({alwaysNotify: true}),
         new VueLoaderPlugin(),
          new BrowserSyncPlugin({
-             files: ['./app/**/*'], // also watches scale file changes
-             host: 'localhost',
-             port: 3001,
-             proxy: 'http://localhost:9000',
-             browser: 'google chrome' // 'Chrome' for windows, 'google chrome' for Mac
+             files: ['./app/**/*'], // also watches scala file changes
+             // host: 'localhost', TODO: Setting proxy does not work well with Play's http server yet. Need some adjustments.
+             // port: 3001,
+             // proxy: 'http://localhost:9000',
+             // browser: 'google chrome' // 'Chrome' for windows, 'google chrome' for Mac
          })
     ]
 };
