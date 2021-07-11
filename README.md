@@ -11,11 +11,11 @@ SuzumeChunChun has mainly these features below:
 - Without creating an account, you can start a chat room with anyone you want!
 - No personal info is necessary to create a chat channel(chat room).
 - No message is stored on the server. Messages are displayed only in your browser.
-- Messages are encrypted in your browser. (If you delete your chat secret key, we even can't recover your message!)'
-- Messages will vaporize approximately every 20 seconds. And Only latest 10 messages will be displayed.'
+- Messages are encrypted in your browser. (If you delete your chat secret key, we even can't recover your message!
+- Messages will vaporize approximately every 20 seconds. And Only latest 10 messages will be displayed.
 - All data on the server is also encrypted or hashed. (All data except tables' primary keys and timestamps. But primary keys and timestamps have nothing to do with identifying who used or with messages you sent).
-- When you end a chat channel, it's impossible to recover the channel or messages.'
-- It is open source, and the code is public.'],
+- When you end a chat channel, it's impossible to recover the channel or messages.
+- It is open source, and the code is public.
 - If you find any problem, please let me know on Twitter or GitHub.
 
 
@@ -62,7 +62,7 @@ All the TypeScript and CSS code is in `resources` directory.
 If you would like to test and reuse the code, here is how to set up dev environment.
 
 
-### system requirement
+### system requirements
 
 Please use IntelliJ for this project IDE.
 
@@ -76,12 +76,12 @@ sbt >= 1.4.9.
 First, you need to install these tools below.
 
 
-1. yarn (npm): To build TypeScript and CSS.
-1. google tinkey: To create encryption keyset.
-1. docker: For database.
+1. Yarn (npm): To build TypeScript and CSS.
+1. Google Tinkey: To create encryption keyset.
+1. Docker: For database.
 
 
-##### yarn
+##### Yarn
 
 This project uses yarn1. 
 
@@ -125,15 +125,15 @@ yarn install
 #### Creating Tink keyset
 
 
-Use Google tinkey to create encryption key which is used to encrypt data in the database.
+Google Tinkey creates encryption key which is used to encrypt data in the database.
 
-Enter the command below which will create `plaintext-keyset.json` in the project directory.
+The command below will create `plaintext-keyset.json` in the project directory.
 
 ```bash
 tinkey create-keyset --key-template AES128_GCM --out plaintext-keyset.json
 ```
 
-This keyset should be used only in development. Do not use plaintext keyset in a production environment.
+This keyset should be used only in development. Plase do not use plaintext keyset in a production environment.
 
 
 ---
@@ -165,7 +165,7 @@ start **sbt shell** (not Terminal), and then
 run
 ```
 
-This will also watch file changes.
+This will also watch the file changes.
 
 
 #### Transpile TypeScript code
@@ -176,7 +176,7 @@ Start **Terminal**, and then
 yarn dev
 ```
 
-You can also use `yarn watch` to transpile and watch file changes.
+You can also use `yarn watch` to transpile and watch the file changes.
 
 
 ---
@@ -187,7 +187,7 @@ You can also use `yarn watch` to transpile and watch file changes.
 
 #### Play Testing
 
-In **sbt shell**, run command below.
+In **sbt shell**, the command below will run Scala tests.
 
 ```
 test
@@ -195,7 +195,7 @@ test
 
 #### TypeScript Testing
 
-Open **Terminal**, and then run below.
+In **Terminal**, the command below will run JavaScript/TypeScript tests.
 
 ```
 yarn test

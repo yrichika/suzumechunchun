@@ -1,5 +1,6 @@
 export default interface ChatMessage {
   name: string,
   message: string,
-  color: string
+  color: string,
+  timestamp: number
 }
