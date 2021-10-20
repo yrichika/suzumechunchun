@@ -16,7 +16,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 const csrfToken = Cookie.get('csrf_token')
 axios.defaults.headers.common = {
   'X-Requested-With': 'XMLHttpRequest',
-  'Csrf-Token': csrfToken
+  'Csrf-Token': csrfToken ?? ''
 }
 
 // Add Vue components

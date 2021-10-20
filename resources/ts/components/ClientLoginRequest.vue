@@ -141,7 +141,7 @@ export default Vue.extend({
                 codename: this.codename,
                 passphrase: this.passphrase
             })
-            .then((response: AxiosResponse) => {
+            .then((response: AxiosResponse<any>) => {
                 if (response.data.message != this.closedRequestStatusString) {
                     this.eventSource = new EventSource(this.sseUrl);
                     this.eventSource.onmessage = this.sseMessageEvent
