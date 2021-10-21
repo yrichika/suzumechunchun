@@ -70,7 +70,13 @@ class ClientController @Inject()
     tokenFut.map(tokenOpt => {
       tokenOpt match {
         case Some(channel) if (request.session.get("hostId").nonEmpty) => {
-          BadRequest("If you are a host and want to access this client page, you should access with PRIVATE MODE or use different browsers. Otherwise, it's now allowed for a host to access to the client page.")
+          BadRequest(views.html.pages.error.e400(BAD_REQUEST,
+            """If you are a host and want to access this client page,
+              |you should access with PRIVATE MODE or use different browsers.
+              |Otherwise, it's now allowed for a host to access to the client page.
+              | もし同じブラウザから同時にhostとclientを使いたい場合は、
+              |どちらかをプライベート(シークレット)モードにして下さい。もしくはhostとclient
+              |で別々のブラウザを使って下さい。""".stripMargin))
         }
         case Some(channelToken) => getRequestPage(channelToken, loginChannelToken)
         case None => NotFound("Token Invalid")
@@ -188,7 +194,7 @@ class ClientController @Inject()
           case Some(secretKey) => {
             Crypter.decrypt(secretKey, channel.channelId.toString)
           }
-          case None => throw new Exception("this chat channel is already closed.")
+          case None => throw new Exception("This chat channel is already closed. このチャットチャンネルはすでに終了しました。")
         }
       }
       case None => throw new Exception(modelNotFoundErrorMessage)
