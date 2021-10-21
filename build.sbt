@@ -3,7 +3,7 @@ import play.core.PlayVersion.akkaVersion
 name := """SuzumeChunChun"""
 organization := "com.suzumechunchun"
 
-version := "0.1.2-SNAPSHOT"
+version := "0.1.3"
 
 lazy val root = (project in file(".")).enablePlugins(PlayScala)
 
