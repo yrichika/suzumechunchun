@@ -1,10 +1,10 @@
 @(statusCode: Int, errorMessage: String)(implicit request: RequestHeader)
-@layouts.error(statusCode.toString + " Error", "error/e500") {
-<div id="e500-content" class="container mx-auto">
+@layouts.error(statusCode.toString + " Error", "error/e400") {
+<div id="e400-content" class="container mx-auto">
     <div class="text-center">
         <h1 class="text-2xl">Sorry! @statusCode Error</h1>
         <p>
-            A server error occurred:
+            A client error occurred:
         </p>
         <p>
             @errorMessage
@@ -14,5 +14,4 @@
         <a href="@routes.TopController.index()" class="text-blue-500 underline">Top</a>
     </div>
 </div>
-
 }

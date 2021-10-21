@@ -1,0 +1,41 @@
+@(title: String, langPath: String)(content: Html)(implicit request: RequestHeader)
+<!DOCTYPE html>
+<html lang="en">
+<head prefix="og: http://ogp.me/ns# fb: http://ogp.me/ns/fb# article: http://ogp.me/ns/website#">
+    <meta charset="utf-8">
+
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="format-detection" content="telephone=no,address=no,email=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1 viewport-fit=cover">
+
+    <script src='@routes.Assets.versioned(s"lang/$langPath/en.js")' defer></script>
+    <script src='@routes.Assets.versioned(s"lang/$langPath/ja.js")' defer></script>
+    <script src='@routes.Assets.versioned("javascripts/app.js")' defer></script>
+
+    <title>@title</title>
+
+</head>
+<body>
+
+<div class="mx-auto mb-3 bg-gray-100">
+    <header class="border-b-2 w-fill mx-2">
+        <div class="flex justify-between">
+            <div class="flex justify-start items-center">
+                <a href="@routes.TopController.index()">
+                    <img class="h-10 w-auto" src='@routes.Assets.versioned("images/icon.svg")' alt="logo">
+                </a>
+            </div>
+            @* FIXME: is there any way to implement this multilingual functionality for error pages?
+            <div class="flex justify-end">
+                <button class="text-blue-500 underline m-3" onclick='L.setLanguage("en")'>English</button>
+                <button class="text-blue-500 underline m-3" onclick='L.setLanguage("ja")'>日本語</button>
+            </div>
+            *@
+        </div>
+    </header>
+</div>
+@content
+
+
+</body>
+</html>
