@@ -69,6 +69,8 @@ class ClientControllerSpec extends CreatingFakeChannel with Injecting {
         .withSession("hostId" -> TestRandom.string(5))
       val response = route(app, request).get
       status(response) mustBe BAD_REQUEST
+      // asserting error message because this message is kind of important.
+      contentAsString(response) must include regex(s"""(?s)If you are a host and want to.+もし同じブラウザから同時に""")
     }
   }
 
