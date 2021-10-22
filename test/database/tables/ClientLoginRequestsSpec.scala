@@ -12,6 +12,7 @@ import scala.util.Random
 import forms.{ClientStatus, LoginRequest}
 import testhelpers.utils.TestRandom
 
+import java.sql.Timestamp
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
@@ -24,11 +25,24 @@ with TestDatabaseConfiguration
 
   val fakeChannelId = TestRandom.string(5)
   val fakeRequestClientId = TestRandom.string(5)
-  val fakeModels = new ClientLoginRequestFactory {
+  // REFACTOR: Is there any way to wrap fakeModel* creations to one method?
+  val fakeModel1 = new ClientLoginRequestFactory {
     override def channelId: String = fakeChannelId
     override def requestClientIdHash: String = Hash.sha2(fakeRequestClientId)
     override def isAuthenticated: Option[Boolean] = None // Just for clarity
-  }.create(1)
+  }.create()
+  val fakeModel2 = new ClientLoginRequestFactory {
+    override def channelId: String = fakeChannelId
+    // For testing `getByChannelId`. It sorts items by createdAt in descendant
+    override def createdAt: Timestamp = new Timestamp(System.currentTimeMillis() + 1000)
+  }.create()
+  val fakeModel3 = new ClientLoginRequestFactory {
+    override def channelId: String = fakeChannelId
+    // For testing `getByChannelId`. It sorts items by createdAt in descendant
+    override def createdAt: Timestamp = new Timestamp(System.currentTimeMillis() + 5000)
+  }.create()
+  val fakeModels = fakeModel1 ++ fakeModel2 ++ fakeModel3
+
   val firstModel = fakeModels.head
   val loginRequest = LoginRequest(
     TestRandom.string(5),
@@ -47,9 +61,9 @@ with TestDatabaseConfiguration
     "get collection by channel id" in {
       whenReady(ClientLoginRequestsTable.getByChannelId(fakeChannelId)) {
         results =>
-          val sortedResults = results.sortBy(_.channelId)
-          val sortedExpecteds = fakeModels.sortBy(_.channelId)
-          for ((r, e) <- (sortedResults zip sortedExpecteds)) {
+          val sortedExpecteds = fakeModels.sortBy(_.createdAt).reverse
+          results.foreach(a => println(a.createdAt))
+          for ((r, e) <- (results zip sortedExpecteds)) {
             r.clientLoginRequestId mustBe a [String]
             r.requestClientIdHash mustBe e.requestClientIdHash
             r.channelId mustBe e.channelId
