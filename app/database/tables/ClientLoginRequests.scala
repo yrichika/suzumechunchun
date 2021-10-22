@@ -30,7 +30,10 @@ class ClientLoginRequests @Inject()
   protected val tableName = "client_login_requests"
 
   def getByChannelId(channelId: String): Future[Seq[ClientLoginRequest]] = {
-    val statement = query.filter(_.channelId === channelId).result
+    val statement = query
+      .filter(_.channelId === channelId)
+      .sortBy(client => client.createdAt.desc)
+      .result
     db.run(statement)
   }
 
