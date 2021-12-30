@@ -1,8 +1,12 @@
 # SuzumeChunChun Web Chat App
 
+**This app is not available anymore and is no longer maintained**.
+
+---
+
 **Totally Anonymous and Private Web Chat App**
 
-You can use this app at https://suzumechunchun.com
+You can use this app at ~~https://suzumechunchun.com~~
 
 SuzumeChunChun has mainly these features below:
 
@@ -19,7 +23,7 @@ SuzumeChunChun has mainly these features below:
 - If you find any problem, please let me know on Twitter or GitHub.
 
 
-General support, news, announcement: https://twitter.com/sccwebchat
+General support, news, announcement: ~~https://twitter.com/sccwebchat~~
 
 
 You can post general questions on the Twitter account.
